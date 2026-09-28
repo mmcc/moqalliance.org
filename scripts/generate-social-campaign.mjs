@@ -164,7 +164,6 @@ const makeXOverlay = (card, index) => {
 	return `
 <svg width="1200" height="1200" viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg">
 	<rect x="760" y="200" width="380" height="500" fill="none" stroke="${card.accent}" stroke-width="6"/>
-	<path d="M742 184H1124" stroke="${card.accent}" stroke-width="3"/>
 	<path d="M1142 216V684" stroke="${campaign.theme.paper}" stroke-opacity="0.55" stroke-width="2"/>
 
 	${brand({ x: 70, y: 96, size: 72, accent: card.accent })}
@@ -196,7 +195,6 @@ const makeLinkedInOverlay = (card, index) => {
 	return `
 <svg width="1200" height="627" viewBox="0 0 1200 627" xmlns="http://www.w3.org/2000/svg">
 	<rect x="850" y="132" width="300" height="350" fill="none" stroke="${card.accent}" stroke-width="6"/>
-	<path d="M832 116H1134" stroke="${card.accent}" stroke-width="3"/>
 
 	${brand({ x: 50, y: 73, size: 54, accent: card.accent })}
 	<text x="52" y="111" fill="${card.accent}" font-family="DM Mono, monospace" font-size="18" font-weight="500" letter-spacing="2">${escapeXml(campaign.campaign.label)} / ${String(index + 1).padStart(2, "0")}</text>
