@@ -1,0 +1,575 @@
+import { lstat, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import twitterText from "twitter-text";
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const fontDirectory = path.join(root, "scripts", "fonts");
+const campaignFile = process.argv[2];
+
+if (!campaignFile) {
+	throw new Error("Usage: npm run generate:campaign -- campaigns/<campaign>.json");
+}
+
+process.env.FONTCONFIG_FILE = "fonts.conf";
+process.env.FONTCONFIG_PATH = fontDirectory;
+
+const { default: sharp } = await import("sharp");
+const campaign = JSON.parse(await readFile(path.resolve(root, campaignFile), "utf8"));
+const outputDirectory = path.resolve(root, campaign.outputDirectory);
+const publicDirectory = path.join(root, "public");
+const markerName = ".social-campaign.json";
+const generationDirectory = `${outputDirectory}.tmp-${process.pid}`;
+const backupDirectory = `${outputDirectory}.backup-${process.pid}`;
+
+if (!outputDirectory.startsWith(`${publicDirectory}${path.sep}`)) {
+	throw new Error("Campaign outputDirectory must be inside public/");
+}
+
+const outputParent = path.dirname(outputDirectory);
+const realPublicDirectory = await realpath(publicDirectory);
+
+const nearestExistingAncestor = async (candidate) => {
+	try {
+		return await realpath(candidate);
+	} catch (error) {
+		if (error.code !== "ENOENT") throw error;
+		const parent = path.dirname(candidate);
+		if (parent === candidate) throw error;
+		return nearestExistingAncestor(parent);
+	}
+};
+
+const realAncestor = await nearestExistingAncestor(outputParent);
+if (
+	realAncestor !== realPublicDirectory &&
+	!realAncestor.startsWith(`${realPublicDirectory}${path.sep}`)
+) {
+	throw new Error("Campaign outputDirectory resolves outside public/");
+}
+
+await mkdir(outputParent, { recursive: true });
+const realOutputParent = await realpath(outputParent);
+
+if (
+	realOutputParent !== realPublicDirectory &&
+	!realOutputParent.startsWith(`${realPublicDirectory}${path.sep}`)
+) {
+	throw new Error("Campaign outputDirectory resolves outside public/");
+}
+
+const escapeXml = (value) =>
+	value
+		.replaceAll("&", "&amp;")
+		.replaceAll("<", "&lt;")
+		.replaceAll(">", "&gt;")
+		.replaceAll('"', "&quot;")
+		.replaceAll("'", "&apos;");
+
+const textLines = ({ lines, x, y, size, lineHeight, family, fill, weight = 400 }) =>
+	lines
+		.map(
+			(line, index) =>
+				`<text x="${x}" y="${y + index * lineHeight}" fill="${fill}" font-family="${family}" font-size="${size}" font-weight="${weight}">${escapeXml(line)}</text>`,
+		)
+		.join("");
+
+const hashtags = (items) => items.map((item) => `#${item}`).join(" ");
+
+const xMetrics = (copy) => twitterText.parseTweet(copy);
+
+const makeXCopy = (card) => `${card.name} of ${card.company} is speaking at ${campaign.event.name}.
+
+"${card.title}"
+
+${campaign.event.date} in ${campaign.event.location}.
+${campaign.event.url}
+
+${hashtags(campaign.campaign.xHashtags)}`;
+
+const makeLinkedInCopy = (card) => `${card.name} of ${card.company} is speaking at ${campaign.event.name} on ${campaign.event.date} in ${campaign.event.location}.
+
+"${card.title}"
+
+${card.summary}
+
+Register: ${campaign.event.url}
+
+${hashtags(campaign.campaign.linkedinHashtags)}`;
+
+const validateCampaign = () => {
+	if (campaign.schemaVersion !== 1) throw new Error("Unsupported campaign schemaVersion");
+	if (!campaign.cards?.length) throw new Error("Campaign must contain at least one card");
+	if (!campaign.brand?.highlight) throw new Error("Campaign must define brand text");
+	if (campaign.campaign.xHashtags.length > 2) throw new Error("X campaigns may use at most two hashtags");
+	if (
+		campaign.campaign.linkedinHashtags.length < 3 ||
+		campaign.campaign.linkedinHashtags.length > 5
+	) {
+		throw new Error("LinkedIn campaigns must use three to five hashtags");
+	}
+
+	const slugs = new Set();
+	for (const card of campaign.cards) {
+		if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(card.slug)) {
+			throw new Error(`${card.name}'s slug must contain lowercase letters, numbers, and hyphens only`);
+		}
+		if (slugs.has(card.slug)) throw new Error(`Duplicate card slug: ${card.slug}`);
+		slugs.add(card.slug);
+
+		const xCopy = makeXCopy(card);
+		const linkedInCopy = makeLinkedInCopy(card);
+		if (!xMetrics(xCopy).valid) {
+			throw new Error(`${card.name}'s X copy exceeds 280 weighted characters`);
+		}
+		if (linkedInCopy.length > 3000) {
+			throw new Error(`${card.name}'s LinkedIn copy exceeds 3,000 characters`);
+		}
+		if (linkedInCopy.split("\n", 1)[0].length > 150) {
+			throw new Error(`${card.name}'s LinkedIn opening line exceeds 150 characters`);
+		}
+	}
+};
+
+const makeBackground = ({ width, height, accent, watermarkSize, watermarkY }) => `
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+	<defs>
+		<radialGradient id="glow" cx="78%" cy="38%" r="68%">
+			<stop offset="0" stop-color="${accent}" stop-opacity="0.18"/>
+			<stop offset="0.48" stop-color="#14121a" stop-opacity="0.7"/>
+			<stop offset="1" stop-color="${campaign.theme.ink}"/>
+		</radialGradient>
+		<pattern id="lines" width="42" height="42" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+			<line x1="0" y1="0" x2="0" y2="42" stroke="${campaign.theme.paper}" stroke-opacity="0.025" stroke-width="2"/>
+		</pattern>
+	</defs>
+	<rect width="${width}" height="${height}" fill="${campaign.theme.ink}"/>
+	<rect width="${width}" height="${height}" fill="url(#glow)"/>
+	<rect width="${width}" height="${height}" fill="url(#lines)"/>
+	<circle cx="${width - 40}" cy="60" r="250" fill="none" stroke="${accent}" stroke-opacity="0.12" stroke-width="70"/>
+	<text x="${width - 10}" y="${watermarkY}" fill="${campaign.theme.paper}" fill-opacity="0.025" font-family="Anton, sans-serif" font-size="${watermarkSize}" font-weight="700" text-anchor="end">MOQ</text>
+</svg>`;
+
+const brand = ({ x, y, size, accent }) => `
+	<text x="${x}" y="${y}" font-family="Anton, sans-serif" font-size="${size}" font-weight="700" letter-spacing="2">
+		<tspan fill="${campaign.theme.paper}">${escapeXml(campaign.brand.prefix)}</tspan><tspan fill="${accent}">${escapeXml(campaign.brand.highlight)}</tspan><tspan fill="${campaign.theme.paper}">${escapeXml(campaign.brand.suffix)}</tspan>
+	</text>`;
+
+const makeXOverlay = (card, index) => {
+	const layout = card.layouts.x;
+	const titleY = layout.titleSize >= 80 ? 325 : 285;
+	const titleBottom = titleY + (layout.titleLines.length - 1) * layout.lineHeight;
+	const summaryY = Math.max(630, titleBottom + 88);
+
+	return `
+<svg width="1200" height="1200" viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg">
+	<rect x="760" y="200" width="380" height="500" fill="none" stroke="${card.accent}" stroke-width="6"/>
+	<path d="M742 184H1124" stroke="${card.accent}" stroke-width="3"/>
+	<path d="M1142 216V684" stroke="${campaign.theme.paper}" stroke-opacity="0.55" stroke-width="2"/>
+
+	${brand({ x: 70, y: 96, size: 72, accent: card.accent })}
+	<text x="72" y="143" fill="${card.accent}" font-family="DM Mono, monospace" font-size="22" font-weight="500" letter-spacing="3">${escapeXml(campaign.campaign.label)} / ${String(index + 1).padStart(2, "0")}</text>
+	<text x="1138" y="92" fill="${campaign.theme.paper}" font-family="DM Mono, monospace" font-size="24" text-anchor="end">${escapeXml(campaign.event.dateShort)} / ${escapeXml(campaign.event.location.toUpperCase())}</text>
+	<text x="1138" y="132" fill="${campaign.theme.muted}" font-family="DM Mono, monospace" font-size="21" text-anchor="end">${escapeXml(campaign.event.subject.toUpperCase())}</text>
+
+	<text x="70" y="226" fill="${card.accent}" font-family="DM Mono, monospace" font-size="20" font-weight="500" letter-spacing="4">THE TALK</text>
+	${textLines({ lines: layout.titleLines, x: 70, y: titleY, size: layout.titleSize, lineHeight: layout.lineHeight, family: "Anton, sans-serif", fill: campaign.theme.paper, weight: 700 })}
+
+	<line x1="70" y1="${summaryY - 39}" x2="680" y2="${summaryY - 39}" stroke="${card.accent}" stroke-width="4"/>
+	${textLines({ lines: layout.summaryLines, x: 70, y: summaryY, size: 34, lineHeight: 52, family: "DM Mono, monospace", fill: campaign.theme.copy, weight: 500 })}
+
+	<rect x="800" y="644" width="300" height="36" fill="${card.accent}"/>
+	<text x="950" y="670" fill="${campaign.theme.ink}" font-family="DM Mono, monospace" font-size="20" font-weight="500" text-anchor="middle">${escapeXml(campaign.campaign.label)}</text>
+
+	<line x1="70" y1="932" x2="1138" y2="932" stroke="${campaign.theme.paper}" stroke-opacity="0.25" stroke-width="2"/>
+	<text x="70" y="1036" fill="${campaign.theme.paper}" font-family="Anton, sans-serif" font-size="88" font-weight="700">${escapeXml(card.name.toUpperCase())}</text>
+	<text x="74" y="1090" fill="${card.accent}" font-family="DM Mono, monospace" font-size="32" font-weight="500" letter-spacing="3">${escapeXml(card.company.toUpperCase())}</text>
+	<text x="70" y="1150" fill="${campaign.theme.muted}" font-family="DM Mono, monospace" font-size="28">${escapeXml(campaign.event.venueShort)}</text>
+	<text x="1138" y="1150" fill="${campaign.theme.paper}" font-family="DM Mono, monospace" font-size="28" text-anchor="end">${escapeXml(campaign.event.displayUrl)}</text>
+</svg>`;
+};
+
+const makeLinkedInOverlay = (card, index) => {
+	const layout = card.layouts.linkedin;
+	const titleY = 213;
+
+	return `
+<svg width="1200" height="627" viewBox="0 0 1200 627" xmlns="http://www.w3.org/2000/svg">
+	<rect x="850" y="132" width="300" height="350" fill="none" stroke="${card.accent}" stroke-width="6"/>
+	<path d="M832 116H1134" stroke="${card.accent}" stroke-width="3"/>
+
+	${brand({ x: 50, y: 73, size: 54, accent: card.accent })}
+	<text x="52" y="111" fill="${card.accent}" font-family="DM Mono, monospace" font-size="18" font-weight="500" letter-spacing="2">${escapeXml(campaign.campaign.label)} / ${String(index + 1).padStart(2, "0")}</text>
+	<text x="1150" y="62" fill="${campaign.theme.paper}" font-family="DM Mono, monospace" font-size="22" text-anchor="end">${escapeXml(campaign.event.dateShort)} / ${escapeXml(campaign.event.location.toUpperCase())}</text>
+	<text x="1150" y="96" fill="${campaign.theme.muted}" font-family="DM Mono, monospace" font-size="18" text-anchor="end">${escapeXml(campaign.event.subject.toUpperCase())}</text>
+
+	<text x="50" y="158" fill="${card.accent}" font-family="DM Mono, monospace" font-size="17" font-weight="500" letter-spacing="4">THE TALK</text>
+	${textLines({ lines: layout.titleLines, x: 50, y: titleY, size: layout.titleSize, lineHeight: layout.lineHeight, family: "Anton, sans-serif", fill: campaign.theme.paper, weight: 700 })}
+
+	<rect x="875" y="436" width="250" height="30" fill="${card.accent}"/>
+	<text x="1000" y="458" fill="${campaign.theme.ink}" font-family="DM Mono, monospace" font-size="17" font-weight="500" text-anchor="middle">${escapeXml(campaign.campaign.label)}</text>
+
+	<line x1="50" y1="463" x2="800" y2="463" stroke="${card.accent}" stroke-width="4"/>
+	<text x="50" y="535" fill="${campaign.theme.paper}" font-family="Anton, sans-serif" font-size="64" font-weight="700">${escapeXml(card.name.toUpperCase())}</text>
+	<text x="54" y="580" fill="${card.accent}" font-family="DM Mono, monospace" font-size="25" font-weight="500" letter-spacing="2">${escapeXml(card.company.toUpperCase())}</text>
+	<text x="1150" y="584" fill="${campaign.theme.paper}" font-family="DM Mono, monospace" font-size="22" text-anchor="end">${escapeXml(campaign.event.displayUrl)}</text>
+</svg>`;
+};
+
+const portraitFor = async (card, width, height) => {
+	const portraitSource = sharp(path.resolve(root, card.portrait));
+	if (card.crop) portraitSource.extract(card.crop);
+
+	return portraitSource
+		.resize(width, height, { fit: "cover", position: "centre" })
+		.grayscale()
+		.linear(1.08, -6)
+		.png()
+		.toBuffer();
+};
+
+const measureText = async ({ text, size, family, weight = 400, letterSpacing = 0 }) => {
+	const svg = `<svg width="2000" height="300" xmlns="http://www.w3.org/2000/svg"><text x="10" y="${size * 1.4}" font-family="${family}" font-size="${size}" font-weight="${weight}" letter-spacing="${letterSpacing}">${escapeXml(text)}</text></svg>`;
+	const { info } = await sharp(Buffer.from(svg)).trim().png().toBuffer({ resolveWithObject: true });
+	return { width: info.width, height: info.height };
+};
+
+const validateGeometry = async () => {
+	const displayUrl = await measureText({
+		text: campaign.event.displayUrl,
+		size: 22,
+		family: "DM Mono",
+	});
+	const brandText = `${campaign.brand.prefix}${campaign.brand.highlight}${campaign.brand.suffix}`;
+
+	for (const [index, card] of campaign.cards.entries()) {
+		const checks = [
+			{
+				label: "X brand",
+				text: brandText,
+				size: 72,
+				family: "Anton",
+				weight: 700,
+				letterSpacing: 2,
+				maxWidth: 500,
+			},
+			{
+				label: "X campaign label",
+				text: `${campaign.campaign.label} / ${String(index + 1).padStart(2, "0")}`,
+				size: 22,
+				family: "DM Mono",
+				weight: 500,
+				letterSpacing: 3,
+				maxWidth: 600,
+			},
+			{
+				label: "X date and location",
+				text: `${campaign.event.dateShort} / ${campaign.event.location.toUpperCase()}`,
+				size: 24,
+				family: "DM Mono",
+				maxWidth: 550,
+			},
+			{
+				label: "X subject",
+				text: campaign.event.subject.toUpperCase(),
+				size: 21,
+				family: "DM Mono",
+				maxWidth: 450,
+			},
+			...card.layouts.x.titleLines.map((text) => ({
+				label: "X title",
+				text,
+				size: card.layouts.x.titleSize,
+				family: "Anton",
+				weight: 700,
+				maxWidth: 650,
+			})),
+			...card.layouts.x.summaryLines.map((text) => ({
+				label: "X summary",
+				text,
+				size: 34,
+				family: "DM Mono",
+				weight: 500,
+				maxWidth: 610,
+			})),
+			{
+				label: "X photo label",
+				text: campaign.campaign.label,
+				size: 20,
+				family: "DM Mono",
+				weight: 500,
+				maxWidth: 280,
+			},
+			{
+				label: "X speaker name",
+				text: card.name.toUpperCase(),
+				size: 88,
+				family: "Anton",
+				weight: 700,
+				maxWidth: 1068,
+			},
+			{
+				label: "X company",
+				text: card.company.toUpperCase(),
+				size: 32,
+				family: "DM Mono",
+				weight: 500,
+				letterSpacing: 3,
+				maxWidth: 700,
+			},
+			{
+				label: "X venue",
+				text: campaign.event.venueShort,
+				size: 28,
+				family: "DM Mono",
+				maxWidth: 520,
+			},
+			{
+				label: "X URL",
+				text: campaign.event.displayUrl,
+				size: 28,
+				family: "DM Mono",
+				maxWidth: 550,
+			},
+			{
+				label: "LinkedIn brand",
+				text: brandText,
+				size: 54,
+				family: "Anton",
+				weight: 700,
+				letterSpacing: 2,
+				maxWidth: 500,
+			},
+			{
+				label: "LinkedIn campaign label",
+				text: `${campaign.campaign.label} / ${String(index + 1).padStart(2, "0")}`,
+				size: 18,
+				family: "DM Mono",
+				weight: 500,
+				letterSpacing: 2,
+				maxWidth: 600,
+			},
+			{
+				label: "LinkedIn date and location",
+				text: `${campaign.event.dateShort} / ${campaign.event.location.toUpperCase()}`,
+				size: 22,
+				family: "DM Mono",
+				maxWidth: 500,
+			},
+			{
+				label: "LinkedIn subject",
+				text: campaign.event.subject.toUpperCase(),
+				size: 18,
+				family: "DM Mono",
+				maxWidth: 400,
+			},
+			...card.layouts.linkedin.titleLines.map((text) => ({
+				label: "LinkedIn title",
+				text,
+				size: card.layouts.linkedin.titleSize,
+				family: "Anton",
+				weight: 700,
+				maxWidth: 750,
+			})),
+			{
+				label: "LinkedIn speaker name",
+				text: card.name.toUpperCase(),
+				size: 64,
+				family: "Anton",
+				weight: 700,
+				maxWidth: 750,
+			},
+			{
+				label: "LinkedIn photo label",
+				text: campaign.campaign.label,
+				size: 17,
+				family: "DM Mono",
+				weight: 500,
+				maxWidth: 240,
+			},
+		];
+
+		for (const check of checks) {
+			const measured = await measureText(check);
+			if (measured.width > check.maxWidth) {
+				throw new Error(
+					`${card.name}'s ${check.label} is ${measured.width}px wide; maximum is ${check.maxWidth}px`,
+				);
+			}
+		}
+
+		const xLayout = card.layouts.x;
+		const xTitleY = xLayout.titleSize >= 80 ? 325 : 285;
+		const xTitleBottom = xTitleY + (xLayout.titleLines.length - 1) * xLayout.lineHeight;
+		const xSummaryY = Math.max(630, xTitleBottom + 88);
+		const xSummaryBottom = xSummaryY + (xLayout.summaryLines.length - 1) * 52;
+		if (xSummaryBottom > 880) throw new Error(`${card.name}'s X copy exceeds its vertical region`);
+		if (xTitleY - xLayout.titleSize * 0.7 < 230) {
+			throw new Error(`${card.name}'s X title overlaps its section label`);
+		}
+
+		const linkedInLayout = card.layouts.linkedin;
+		const linkedInTitleBottom =
+			213 + (linkedInLayout.titleLines.length - 1) * linkedInLayout.lineHeight;
+		if (linkedInTitleBottom > 420) {
+			throw new Error(`${card.name}'s LinkedIn title exceeds its vertical region`);
+		}
+		if (213 - linkedInLayout.titleSize * 0.7 < 160) {
+			throw new Error(`${card.name}'s LinkedIn title overlaps its section label`);
+		}
+
+		const company = await measureText({
+			text: card.company.toUpperCase(),
+			size: 25,
+			family: "DM Mono",
+			weight: 500,
+			letterSpacing: 2,
+		});
+		if (54 + company.width + 40 > 1150 - displayUrl.width) {
+			throw new Error(`${card.name}'s LinkedIn company overlaps the event URL`);
+		}
+
+		const xVenue = await measureText({
+			text: campaign.event.venueShort,
+			size: 28,
+			family: "DM Mono",
+		});
+		const xUrl = await measureText({
+			text: campaign.event.displayUrl,
+			size: 28,
+			family: "DM Mono",
+		});
+		if (70 + xVenue.width + 40 > 1138 - xUrl.width) {
+			throw new Error(`${card.name}'s X venue overlaps the event URL`);
+		}
+	}
+};
+
+const renderCard = async ({ card, index, platform }) => {
+	const isX = platform === "x";
+	const width = 1200;
+	const height = isX ? 1200 : 627;
+	const portraitWidth = isX ? 380 : 300;
+	const portraitHeight = isX ? 500 : 350;
+	const portraitLeft = isX ? 760 : 850;
+	const portraitTop = isX ? 200 : 132;
+	const portrait = await portraitFor(card, portraitWidth, portraitHeight);
+	const background = makeBackground({
+		width,
+		height,
+		accent: card.accent,
+		watermarkSize: isX ? 390 : 270,
+		watermarkY: isX ? 965 : 610,
+	});
+	const overlay = isX ? makeXOverlay(card, index) : makeLinkedInOverlay(card, index);
+
+	await sharp(Buffer.from(background))
+		.composite([
+			{ input: portrait, left: portraitLeft, top: portraitTop },
+			{ input: Buffer.from(overlay), left: 0, top: 0 },
+		])
+		.png({ compressionLevel: 9 })
+		.toFile(path.join(generationDirectory, platform, `${card.slug}.png`));
+};
+
+const makeCopyDocument = () => {
+	const sections = campaign.cards.map((card) => {
+		const xCopy = makeXCopy(card);
+		const linkedInCopy = makeLinkedInCopy(card);
+		const xAlt = `Square ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${card.name} of ${card.company}. The card shows a black-and-white portrait, a cream-colored talk title that reads "${card.title}" and ${card.accentName} accents on a black background. It summarizes the talk as: "${card.summary}" ${campaign.event.date} in ${campaign.event.location}.`;
+		const linkedInAlt = `Landscape ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${card.name} of ${card.company}. The card shows a black-and-white portrait, a cream-colored talk title that reads "${card.title}" and ${card.accentName} accents on a black background. ${campaign.event.date} in ${campaign.event.location}.`;
+		if (xAlt.length > 1000) throw new Error(`${card.name}'s X alt text exceeds 1,000 characters`);
+
+		return `## ${card.name} / ${card.company}
+
+### X (${xMetrics(xCopy).weightedLength}/280 weighted characters)
+
+${xCopy}
+
+**Image:** \`x/${card.slug}.png\`
+
+**Alt text:** ${xAlt}
+
+### LinkedIn (${linkedInCopy.length}/3,000 characters)
+
+${linkedInCopy}
+
+**Image:** \`linkedin/${card.slug}.png\`
+
+**Alt text:** ${linkedInAlt}`;
+	});
+
+	return `# ${campaign.event.name} ${campaign.campaign.name}
+
+Generated from \`${campaignFile}\`. Copy includes platform-specific limits and hashtag counts.
+
+${sections.join("\n\n---\n\n")}
+`;
+};
+
+validateCampaign();
+await validateGeometry();
+
+const markerPath = path.join(outputDirectory, markerName);
+const outputEntry = await lstat(outputDirectory).catch((error) => {
+	if (error.code === "ENOENT") return null;
+	throw error;
+});
+if (outputEntry?.isSymbolicLink()) {
+	throw new Error("Campaign outputDirectory cannot be a symbolic link");
+}
+const outputExists = Boolean(outputEntry);
+
+if (outputExists) {
+	const marker = JSON.parse(
+		await readFile(markerPath, "utf8").catch((error) => {
+			if (error.code === "ENOENT") {
+				throw new Error(`Refusing to replace unowned output directory: ${campaign.outputDirectory}`);
+			}
+			throw error;
+		}),
+	);
+	if (marker.campaignId !== campaign.id) {
+		throw new Error(`Output directory belongs to campaign ${marker.campaignId}`);
+	}
+}
+
+await rm(generationDirectory, { recursive: true, force: true });
+await rm(backupDirectory, { recursive: true, force: true });
+await Promise.all([
+	mkdir(path.join(generationDirectory, "x"), { recursive: true }),
+	mkdir(path.join(generationDirectory, "linkedin"), { recursive: true }),
+]);
+
+try {
+	await Promise.all(
+		campaign.cards.flatMap((card, index) => [
+			renderCard({ card, index, platform: "x" }),
+			renderCard({ card, index, platform: "linkedin" }),
+		]),
+	);
+
+	await Promise.all([
+		writeFile(path.join(generationDirectory, "copy.md"), makeCopyDocument()),
+		writeFile(
+			path.join(generationDirectory, markerName),
+			`${JSON.stringify({ campaignId: campaign.id, generator: "scripts/generate-social-campaign.mjs" }, null, 2)}\n`,
+		),
+	]);
+
+	if (outputExists) await rename(outputDirectory, backupDirectory);
+	try {
+		await rename(generationDirectory, outputDirectory);
+	} catch (error) {
+		if (outputExists) await rename(backupDirectory, outputDirectory);
+		throw error;
+	}
+	await rm(backupDirectory, { recursive: true, force: true });
+} catch (error) {
+	await rm(generationDirectory, { recursive: true, force: true });
+	throw error;
+}
+
+console.log(
+	`Generated ${campaign.cards.length} cards for X and LinkedIn in ${path.relative(root, outputDirectory)}`,
+);
