@@ -23,6 +23,35 @@ const agenda = [
 	["8:00", "doors close"],
 ];
 
+const speakers = [
+	{
+		name: "Luke Curley",
+		company: "moq.pro",
+		image: "/demoqed-2026/luke-curley.webp",
+	},
+	{
+		name: "Vanessa Pyne",
+		company: "Daily",
+		image: "/demoqed-2026/vanessa-pyne.webp",
+	},
+	{
+		name: "Will Law",
+		company: "Akamai Technologies",
+		image: "/demoqed-2026/will-law.webp",
+	},
+	{
+		name: "Aman Sharma",
+		company: "Meta",
+		image: "/demoqed-2026/aman-sharma.webp",
+	},
+	{
+		name: "Alan Frindell",
+		company: "Atomic Quokka",
+		image: "/demoqed-2026/alan-frindell.webp",
+		imagePosition: "center top",
+	},
+];
+
 const title = "DEMOQED";
 const description =
 	"DEMOQED is an afternoon about Media over QUIC. October 8, 2026 in San Francisco.";
@@ -300,6 +329,109 @@ const socialImage = "https://moqalliance.org/demoqed-2026/social.png";
 
 			.aside .lede + .lede {
 				margin-top: 1rem;
+			}
+
+			.speaker-grid {
+				display: grid;
+				grid-template-columns: repeat(3, minmax(0, 1fr));
+				gap: 0.75rem;
+				margin: clamp(2.5rem, 6vw, 4rem) 0 0;
+				padding: 0;
+				list-style: none;
+			}
+
+			.speaker-card {
+				position: relative;
+				min-width: 0;
+				background: var(--ink);
+				color: var(--paper);
+				overflow: hidden;
+			}
+
+			.speaker-photo {
+				position: relative;
+				aspect-ratio: 4 / 5;
+				overflow: hidden;
+				background: #d4cec3;
+			}
+
+			.speaker-photo::after {
+				content: "";
+				position: absolute;
+				inset: auto 0 0;
+				height: 0.4rem;
+				background: hsl(var(--speaker-h) 92% 55%);
+			}
+
+			.speaker-photo img {
+				display: block;
+				width: 100%;
+				height: 100%;
+				object-fit: cover;
+				filter: grayscale(1) contrast(1.06);
+			}
+
+			.speaker-card:nth-child(1) {
+				--speaker-h: 165;
+			}
+
+			.speaker-card:nth-child(2) {
+				--speaker-h: 205;
+			}
+
+			.speaker-card:nth-child(3) {
+				--speaker-h: 265;
+			}
+
+			.speaker-card:nth-child(4) {
+				--speaker-h: 325;
+			}
+
+			.speaker-card:nth-child(5) {
+				--speaker-h: 25;
+			}
+
+			.speaker-info {
+				min-height: 7.5rem;
+				padding: 1.1rem;
+			}
+
+			.speaker-info h3 {
+				margin: 0;
+				font-family: "Anton", "Arial Narrow", sans-serif;
+				font-size: clamp(1.7rem, 3vw, 2.4rem);
+				font-weight: 400;
+				line-height: 0.95;
+				text-transform: uppercase;
+			}
+
+			.speaker-info p {
+				margin: 0.7rem 0 0;
+				font-size: 0.68rem;
+				font-weight: 500;
+				letter-spacing: 0.13em;
+				line-height: 1.4;
+				text-transform: uppercase;
+				color: hsl(var(--speaker-h) 92% 70%);
+			}
+
+			.speaker-more {
+				display: flex;
+				min-height: 100%;
+				align-items: center;
+				justify-content: center;
+				padding: 2rem;
+				background: hsl(55 96% 57%);
+				color: var(--ink);
+				text-align: center;
+			}
+
+			.speaker-more strong {
+				font-family: "Anton", "Arial Narrow", sans-serif;
+				font-size: clamp(2.3rem, 5vw, 4rem);
+				font-weight: 400;
+				line-height: 0.9;
+				text-transform: uppercase;
 			}
 
 			.event-facts {
@@ -643,6 +775,10 @@ const socialImage = "https://moqalliance.org/demoqed-2026/social.png";
 					grid-template-columns: 1fr;
 				}
 
+				.speaker-grid {
+					grid-template-columns: repeat(2, minmax(0, 1fr));
+				}
+
 				.schedule-head {
 					grid-template-columns: 1fr;
 					gap: 2rem;
@@ -668,6 +804,20 @@ const socialImage = "https://moqalliance.org/demoqed-2026/social.png";
 				.button {
 					flex: 1 1 12rem;
 					text-align: center;
+				}
+			}
+
+			@media (max-width: 430px) {
+				.speaker-grid {
+					grid-template-columns: 1fr;
+				}
+
+				.speaker-photo {
+					aspect-ratio: 5 / 4;
+				}
+
+				.speaker-more {
+					min-height: 13rem;
 				}
 			}
 		</style>
@@ -728,6 +878,34 @@ const socialImage = "https://moqalliance.org/demoqed-2026/social.png";
 						)}
 
 						{i === 7 && (
+							<section class="aside" style="--accent-h:55">
+								<p class="kicker">first speakers announced</p>
+								<h2>Meet the people making MoQ move</h2>
+								<ul class="speaker-grid" aria-label="DEMOQED speakers">
+									{speakers.map(({ name, company, image, imagePosition }) => (
+										<li class="speaker-card">
+											<div class="speaker-photo">
+												<img
+													src={image}
+													alt={`${name}, ${company}`}
+													loading="lazy"
+													style={imagePosition ? `object-position:${imagePosition}` : undefined}
+												/>
+											</div>
+											<div class="speaker-info">
+												<h3>{name}</h3>
+												<p>{company}</p>
+											</div>
+										</li>
+									))}
+									<li class="speaker-more">
+										<strong>More speakers announced soon</strong>
+									</li>
+								</ul>
+							</section>
+						)}
+
+						{i === 10 && (
 							<section class="aside" style="--accent-h:265">
 								<div class="split">
 									<div>
@@ -778,7 +956,7 @@ const socialImage = "https://moqalliance.org/demoqed-2026/social.png";
 							</section>
 						)}
 
-						{i === 11 && (
+						{i === 13 && (
 							<section class="aside" style="--accent-h:325">
 								<div class="schedule-head">
 									<div>
