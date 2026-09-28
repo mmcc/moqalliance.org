@@ -1,0 +1,82 @@
+Luke Curley / moq.pro
+
+POST COPY
+Speaker announcement: Luke Curley of moq.pro is joining DEMOQED in San Francisco.
+
+"How to hand draw your slides (and something something MoQ)"
+
+Hand-drawn slides, plus something something MoQ. You'll have to be there.
+
+October 8, 2026 | Alamo Drafthouse
+https://moqalliance.org/demoqed-2026
+
+ALT TEXT
+Square DEMOQED speaker card for Luke Curley of moq.pro. The card shows a black-and-white portrait, a cream-colored talk title that reads "How to hand draw your slides (and something something MoQ)" and bright green accents on a black background. October 8, 2026 in San Francisco.
+
+------------------------------------------------------------
+
+Vanessa Pyne / Daily
+
+POST COPY
+Speaker announcement: Vanessa Pyne of Daily is joining DEMOQED in San Francisco.
+
+"Do you even bench bro? - Livestreaming a LaserDisc to benchmark MoQ vs HLS"
+
+A LaserDisc livestreamed from New Orleans to San Francisco benchmarks Media over QUIC against HLS.
+
+October 8, 2026 | Alamo Drafthouse
+https://moqalliance.org/demoqed-2026
+
+ALT TEXT
+Square DEMOQED speaker card for Vanessa Pyne of Daily. The card shows a black-and-white portrait, a cream-colored talk title that reads "Do you even bench bro? - Livestreaming a LaserDisc to benchmark MoQ vs HLS" and bright blue accents on a black background. October 8, 2026 in San Francisco.
+
+------------------------------------------------------------
+
+Will Law / Akamai Technologies
+
+POST COPY
+Speaker announcement: Will Law of Akamai Technologies is joining DEMOQED in San Francisco.
+
+"I'm streaming MoQ - huh?"
+
+Why payload-agnostic MOQT still needs media formats, with MSF, CMSF, and working player demos.
+
+October 8, 2026 | Alamo Drafthouse
+https://moqalliance.org/demoqed-2026
+
+ALT TEXT
+Square DEMOQED speaker card for Will Law of Akamai Technologies. The card shows a black-and-white portrait, a cream-colored talk title that reads "I'm streaming MoQ - huh?" and bright purple accents on a black background. October 8, 2026 in San Francisco.
+
+------------------------------------------------------------
+
+Aman Sharma / Meta
+
+POST COPY
+Speaker announcement: Aman Sharma of Meta is joining DEMOQED in San Francisco.
+
+"Moving Instagram and Facebook Live to MoQ"
+
+How Meta is moving Instagram and Facebook Live from its proprietary RUSH protocol to Media over QUIC.
+
+October 8, 2026 | Alamo Drafthouse
+https://moqalliance.org/demoqed-2026
+
+ALT TEXT
+Square DEMOQED speaker card for Aman Sharma of Meta. The card shows a black-and-white portrait, a cream-colored talk title that reads "Moving Instagram and Facebook Live to MoQ" and bright pink accents on a black background. October 8, 2026 in San Francisco.
+
+------------------------------------------------------------
+
+Alan Frindell / Atomic Quokka
+
+POST COPY
+Speaker announcement: Alan Frindell of Atomic Quokka is joining DEMOQED in San Francisco.
+
+"Scaling the OpenMOQ moqx relay"
+
+How the OpenMOQ moqx relay scales fan-out efficiently across multiple CPU cores.
+
+October 8, 2026 | Alamo Drafthouse
+https://moqalliance.org/demoqed-2026
+
+ALT TEXT
+Square DEMOQED speaker card for Alan Frindell of Atomic Quokka. The card shows a black-and-white portrait, a cream-colored talk title that reads "Scaling the OpenMOQ moqx relay" and bright orange accents on a black background. October 8, 2026 in San Francisco.
