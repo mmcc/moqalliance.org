@@ -18,8 +18,9 @@ npm run generate:campaign -- campaigns/example.json
 
 To start another campaign, copy `demoqed-2026-speakers.json`, change its `id`,
 `outputDirectory`, event details, and cards, then run the generic command. Each
-card can set its portrait crop, accent, title, summary, and line breaks for the
-X and LinkedIn layouts.
+card defines one or two speakers, an accent, title, summary, and line breaks for
+the X and LinkedIn layouts. Each speaker provides a name and a portrait under
+`public/`, with optional `crop` and `position` values.
 
 ## Formats
 

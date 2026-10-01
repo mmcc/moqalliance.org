@@ -78,7 +78,13 @@ const hashtags = (items) => items.map((item) => `#${item}`).join(" ");
 
 const xMetrics = (copy) => twitterText.parseTweet(copy);
 
-const makeXCopy = (card) => `${card.name} of ${card.company} is speaking at ${campaign.event.name}.
+const speakerNames = (card, conjunction = " and ") =>
+	card.speakers.map((speaker) => speaker.name).join(conjunction);
+
+const speakerVerb = (card) => (card.speakers.length === 1 ? "is" : "are");
+
+const makeXCopy = (card) =>
+	`${speakerNames(card)} of ${card.company} ${speakerVerb(card)} speaking at ${campaign.event.name}.
 
 "${card.title}"
 
@@ -87,7 +93,8 @@ ${campaign.event.url}
 
 ${hashtags(campaign.campaign.xHashtags)}`;
 
-const makeLinkedInCopy = (card) => `${card.name} of ${card.company} is speaking at ${campaign.event.name} on ${campaign.event.date} in ${campaign.event.location}.
+const makeLinkedInCopy = (card) =>
+	`${speakerNames(card)} of ${card.company} ${speakerVerb(card)} speaking at ${campaign.event.name} on ${campaign.event.date} in ${campaign.event.location}.
 
 "${card.title}"
 
@@ -97,8 +104,8 @@ Register: ${campaign.event.url}
 
 ${hashtags(campaign.campaign.linkedinHashtags)}`;
 
-const validateCampaign = () => {
-	if (campaign.schemaVersion !== 1) throw new Error("Unsupported campaign schemaVersion");
+const validateCampaign = async () => {
+	if (campaign.schemaVersion !== 2) throw new Error("Unsupported campaign schemaVersion");
 	if (!campaign.cards?.length) throw new Error("Campaign must contain at least one card");
 	if (!campaign.brand?.highlight) throw new Error("Campaign must define brand text");
 	if (campaign.campaign.xHashtags.length > 2) throw new Error("X campaigns may use at most two hashtags");
@@ -111,22 +118,33 @@ const validateCampaign = () => {
 
 	const slugs = new Set();
 	for (const card of campaign.cards) {
+		if (!card.speakers?.length) throw new Error(`${card.slug} must define at least one speaker`);
+		if (card.speakers.length > 2) throw new Error(`${card.slug} may define at most two speakers`);
 		if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(card.slug)) {
-			throw new Error(`${card.name}'s slug must contain lowercase letters, numbers, and hyphens only`);
+			throw new Error(`${speakerNames(card)}'s slug must contain lowercase letters, numbers, and hyphens only`);
 		}
 		if (slugs.has(card.slug)) throw new Error(`Duplicate card slug: ${card.slug}`);
 		slugs.add(card.slug);
+		for (const speaker of card.speakers) {
+			if (!speaker.name || !speaker.portrait) {
+				throw new Error(`${card.slug} has a speaker without a name or portrait`);
+			}
+			const realPortrait = await realpath(path.resolve(root, speaker.portrait));
+			if (!realPortrait.startsWith(`${realPublicDirectory}${path.sep}`)) {
+				throw new Error(`${speaker.name}'s portrait must be inside public/`);
+			}
+		}
 
 		const xCopy = makeXCopy(card);
 		const linkedInCopy = makeLinkedInCopy(card);
 		if (!xMetrics(xCopy).valid) {
-			throw new Error(`${card.name}'s X copy exceeds 280 weighted characters`);
+			throw new Error(`${speakerNames(card)}'s X copy exceeds 280 weighted characters`);
 		}
 		if (linkedInCopy.length > 3000) {
-			throw new Error(`${card.name}'s LinkedIn copy exceeds 3,000 characters`);
+			throw new Error(`${speakerNames(card)}'s LinkedIn copy exceeds 3,000 characters`);
 		}
 		if (linkedInCopy.split("\n", 1)[0].length > 150) {
-			throw new Error(`${card.name}'s LinkedIn opening line exceeds 150 characters`);
+			throw new Error(`${speakerNames(card)}'s LinkedIn opening line exceeds 150 characters`);
 		}
 	}
 };
@@ -155,16 +173,31 @@ const brand = ({ x, y, size, accent }) => `
 		<tspan fill="${campaign.theme.paper}">${escapeXml(campaign.brand.prefix)}</tspan><tspan fill="${accent}">${escapeXml(campaign.brand.highlight)}</tspan><tspan fill="${campaign.theme.paper}">${escapeXml(campaign.brand.suffix)}</tspan>
 	</text>`;
 
-const makeXOverlay = (card, index) => {
+const portraitGeometry = (card, platform) => {
+	const multipleSpeakers = card.speakers.length > 1;
+	if (platform === "x") {
+		return multipleSpeakers
+			? { left: 740, top: 240, width: 400, height: 250 }
+			: { left: 760, top: 200, width: 380, height: 500 };
+	}
+
+	return multipleSpeakers
+		? { left: 820, top: 145, width: 330, height: 206 }
+		: { left: 850, top: 132, width: 300, height: 350 };
+};
+
+const makeXOverlay = (card, index, portrait) => {
 	const layout = card.layouts.x;
 	const titleY = layout.titleSize >= 80 ? 325 : 285;
 	const titleBottom = titleY + (layout.titleLines.length - 1) * layout.lineHeight;
 	const summaryY = Math.max(630, titleBottom + 88);
+	const displayedNames = speakerNames(card, " + ").toUpperCase();
+	const speakerSize = layout.speakerSize ?? 88;
 
 	return `
 <svg width="1200" height="1200" viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg">
-	<rect x="760" y="200" width="380" height="500" fill="none" stroke="${card.accent}" stroke-width="6"/>
-	<path d="M1142 216V684" stroke="${campaign.theme.paper}" stroke-opacity="0.55" stroke-width="2"/>
+	<rect x="${portrait.left}" y="${portrait.top}" width="${portrait.width}" height="${portrait.height}" fill="none" stroke="${card.accent}" stroke-width="6"/>
+	<path d="M1142 ${portrait.top + 16}V${portrait.top + portrait.height - 16}" stroke="${campaign.theme.paper}" stroke-opacity="0.55" stroke-width="2"/>
 
 	${brand({ x: 70, y: 96, size: 72, accent: card.accent })}
 	<text x="72" y="143" fill="${card.accent}" font-family="DM Mono, monospace" font-size="22" font-weight="500" letter-spacing="3">${escapeXml(campaign.campaign.label)} / ${String(index + 1).padStart(2, "0")}</text>
@@ -177,24 +210,26 @@ const makeXOverlay = (card, index) => {
 	<line x1="70" y1="${summaryY - 39}" x2="680" y2="${summaryY - 39}" stroke="${card.accent}" stroke-width="4"/>
 	${textLines({ lines: layout.summaryLines, x: 70, y: summaryY, size: 34, lineHeight: 52, family: "DM Mono, monospace", fill: campaign.theme.copy, weight: 500 })}
 
-	<rect x="800" y="644" width="300" height="36" fill="${card.accent}"/>
-	<text x="950" y="670" fill="${campaign.theme.ink}" font-family="DM Mono, monospace" font-size="20" font-weight="500" text-anchor="middle">${escapeXml(campaign.campaign.label)}</text>
+	<rect x="${portrait.left + 40}" y="${portrait.top + portrait.height - 56}" width="${portrait.width - 80}" height="36" fill="${card.accent}"/>
+	<text x="${portrait.left + portrait.width / 2}" y="${portrait.top + portrait.height - 30}" fill="${campaign.theme.ink}" font-family="DM Mono, monospace" font-size="20" font-weight="500" text-anchor="middle">${escapeXml(campaign.campaign.label)}</text>
 
 	<line x1="70" y1="932" x2="1138" y2="932" stroke="${campaign.theme.paper}" stroke-opacity="0.25" stroke-width="2"/>
-	<text x="70" y="1036" fill="${campaign.theme.paper}" font-family="Anton, sans-serif" font-size="88" font-weight="700">${escapeXml(card.name.toUpperCase())}</text>
+	<text x="70" y="1036" fill="${campaign.theme.paper}" font-family="Anton, sans-serif" font-size="${speakerSize}" font-weight="700">${escapeXml(displayedNames)}</text>
 	<text x="74" y="1090" fill="${card.accent}" font-family="DM Mono, monospace" font-size="32" font-weight="500" letter-spacing="3">${escapeXml(card.company.toUpperCase())}</text>
 	<text x="70" y="1150" fill="${campaign.theme.muted}" font-family="DM Mono, monospace" font-size="28">${escapeXml(campaign.event.venueShort)}</text>
 	<text x="1138" y="1150" fill="${campaign.theme.paper}" font-family="DM Mono, monospace" font-size="28" text-anchor="end">${escapeXml(campaign.event.displayUrl)}</text>
 </svg>`;
 };
 
-const makeLinkedInOverlay = (card, index) => {
+const makeLinkedInOverlay = (card, index, portrait) => {
 	const layout = card.layouts.linkedin;
 	const titleY = 213;
+	const displayedNames = speakerNames(card, " + ").toUpperCase();
+	const speakerSize = layout.speakerSize ?? 64;
 
 	return `
 <svg width="1200" height="627" viewBox="0 0 1200 627" xmlns="http://www.w3.org/2000/svg">
-	<rect x="850" y="132" width="300" height="350" fill="none" stroke="${card.accent}" stroke-width="6"/>
+	<rect x="${portrait.left}" y="${portrait.top}" width="${portrait.width}" height="${portrait.height}" fill="none" stroke="${card.accent}" stroke-width="6"/>
 
 	${brand({ x: 50, y: 73, size: 54, accent: card.accent })}
 	<text x="52" y="111" fill="${card.accent}" font-family="DM Mono, monospace" font-size="18" font-weight="500" letter-spacing="2">${escapeXml(campaign.campaign.label)} / ${String(index + 1).padStart(2, "0")}</text>
@@ -204,22 +239,22 @@ const makeLinkedInOverlay = (card, index) => {
 	<text x="50" y="158" fill="${card.accent}" font-family="DM Mono, monospace" font-size="17" font-weight="500" letter-spacing="4">THE TALK</text>
 	${textLines({ lines: layout.titleLines, x: 50, y: titleY, size: layout.titleSize, lineHeight: layout.lineHeight, family: "Anton, sans-serif", fill: campaign.theme.paper, weight: 700 })}
 
-	<rect x="875" y="436" width="250" height="30" fill="${card.accent}"/>
-	<text x="1000" y="458" fill="${campaign.theme.ink}" font-family="DM Mono, monospace" font-size="17" font-weight="500" text-anchor="middle">${escapeXml(campaign.campaign.label)}</text>
+	<rect x="${portrait.left + 25}" y="${portrait.top + portrait.height - 46}" width="${portrait.width - 50}" height="30" fill="${card.accent}"/>
+	<text x="${portrait.left + portrait.width / 2}" y="${portrait.top + portrait.height - 24}" fill="${campaign.theme.ink}" font-family="DM Mono, monospace" font-size="17" font-weight="500" text-anchor="middle">${escapeXml(campaign.campaign.label)}</text>
 
 	<line x1="50" y1="463" x2="800" y2="463" stroke="${card.accent}" stroke-width="4"/>
-	<text x="50" y="535" fill="${campaign.theme.paper}" font-family="Anton, sans-serif" font-size="64" font-weight="700">${escapeXml(card.name.toUpperCase())}</text>
+	<text x="50" y="535" fill="${campaign.theme.paper}" font-family="Anton, sans-serif" font-size="${speakerSize}" font-weight="700">${escapeXml(displayedNames)}</text>
 	<text x="54" y="580" fill="${card.accent}" font-family="DM Mono, monospace" font-size="25" font-weight="500" letter-spacing="2">${escapeXml(card.company.toUpperCase())}</text>
 	<text x="1150" y="584" fill="${campaign.theme.paper}" font-family="DM Mono, monospace" font-size="22" text-anchor="end">${escapeXml(campaign.event.displayUrl)}</text>
 </svg>`;
 };
 
-const portraitFor = async (card, width, height) => {
-	const portraitSource = sharp(path.resolve(root, card.portrait));
-	if (card.crop) portraitSource.extract(card.crop);
+const portraitFor = async (speaker, width, height) => {
+	const portraitSource = sharp(path.resolve(root, speaker.portrait));
+	if (speaker.crop) portraitSource.extract(speaker.crop);
 
 	return portraitSource
-		.resize(width, height, { fit: "cover", position: "centre" })
+		.resize(width, height, { fit: "cover", position: speaker.position ?? "centre" })
 		.grayscale()
 		.linear(1.08, -6)
 		.png()
@@ -241,6 +276,7 @@ const validateGeometry = async () => {
 	const brandText = `${campaign.brand.prefix}${campaign.brand.highlight}${campaign.brand.suffix}`;
 
 	for (const [index, card] of campaign.cards.entries()) {
+		const displayedNames = speakerNames(card, " + ").toUpperCase();
 		const checks = [
 			{
 				label: "X brand",
@@ -300,8 +336,8 @@ const validateGeometry = async () => {
 			},
 			{
 				label: "X speaker name",
-				text: card.name.toUpperCase(),
-				size: 88,
+				text: displayedNames,
+				size: card.layouts.x.speakerSize ?? 88,
 				family: "Anton",
 				weight: 700,
 				maxWidth: 1068,
@@ -371,8 +407,8 @@ const validateGeometry = async () => {
 			})),
 			{
 				label: "LinkedIn speaker name",
-				text: card.name.toUpperCase(),
-				size: 64,
+				text: displayedNames,
+				size: card.layouts.linkedin.speakerSize ?? 64,
 				family: "Anton",
 				weight: 700,
 				maxWidth: 750,
@@ -391,7 +427,7 @@ const validateGeometry = async () => {
 			const measured = await measureText(check);
 			if (measured.width > check.maxWidth) {
 				throw new Error(
-					`${card.name}'s ${check.label} is ${measured.width}px wide; maximum is ${check.maxWidth}px`,
+					`${speakerNames(card)}'s ${check.label} is ${measured.width}px wide; maximum is ${check.maxWidth}px`,
 				);
 			}
 		}
@@ -401,19 +437,21 @@ const validateGeometry = async () => {
 		const xTitleBottom = xTitleY + (xLayout.titleLines.length - 1) * xLayout.lineHeight;
 		const xSummaryY = Math.max(630, xTitleBottom + 88);
 		const xSummaryBottom = xSummaryY + (xLayout.summaryLines.length - 1) * 52;
-		if (xSummaryBottom > 880) throw new Error(`${card.name}'s X copy exceeds its vertical region`);
+		if (xSummaryBottom > 880) {
+			throw new Error(`${speakerNames(card)}'s X copy exceeds its vertical region`);
+		}
 		if (xTitleY - xLayout.titleSize * 0.7 < 230) {
-			throw new Error(`${card.name}'s X title overlaps its section label`);
+			throw new Error(`${speakerNames(card)}'s X title overlaps its section label`);
 		}
 
 		const linkedInLayout = card.layouts.linkedin;
 		const linkedInTitleBottom =
 			213 + (linkedInLayout.titleLines.length - 1) * linkedInLayout.lineHeight;
 		if (linkedInTitleBottom > 420) {
-			throw new Error(`${card.name}'s LinkedIn title exceeds its vertical region`);
+			throw new Error(`${speakerNames(card)}'s LinkedIn title exceeds its vertical region`);
 		}
 		if (213 - linkedInLayout.titleSize * 0.7 < 160) {
-			throw new Error(`${card.name}'s LinkedIn title overlaps its section label`);
+			throw new Error(`${speakerNames(card)}'s LinkedIn title overlaps its section label`);
 		}
 
 		const company = await measureText({
@@ -424,7 +462,7 @@ const validateGeometry = async () => {
 			letterSpacing: 2,
 		});
 		if (54 + company.width + 40 > 1150 - displayUrl.width) {
-			throw new Error(`${card.name}'s LinkedIn company overlaps the event URL`);
+			throw new Error(`${speakerNames(card)}'s LinkedIn company overlaps the event URL`);
 		}
 
 		const xVenue = await measureText({
@@ -438,7 +476,7 @@ const validateGeometry = async () => {
 			family: "DM Mono",
 		});
 		if (70 + xVenue.width + 40 > 1138 - xUrl.width) {
-			throw new Error(`${card.name}'s X venue overlaps the event URL`);
+			throw new Error(`${speakerNames(card)}'s X venue overlaps the event URL`);
 		}
 	}
 };
@@ -447,11 +485,11 @@ const renderCard = async ({ card, index, platform }) => {
 	const isX = platform === "x";
 	const width = 1200;
 	const height = isX ? 1200 : 627;
-	const portraitWidth = isX ? 380 : 300;
-	const portraitHeight = isX ? 500 : 350;
-	const portraitLeft = isX ? 760 : 850;
-	const portraitTop = isX ? 200 : 132;
-	const portrait = await portraitFor(card, portraitWidth, portraitHeight);
+	const portrait = portraitGeometry(card, platform);
+	const speakerWidth = Math.floor(portrait.width / card.speakers.length);
+	const portraits = await Promise.all(
+		card.speakers.map((speaker) => portraitFor(speaker, speakerWidth, portrait.height)),
+	);
 	const background = makeBackground({
 		width,
 		height,
@@ -459,11 +497,17 @@ const renderCard = async ({ card, index, platform }) => {
 		watermarkSize: isX ? 390 : 270,
 		watermarkY: isX ? 965 : 610,
 	});
-	const overlay = isX ? makeXOverlay(card, index) : makeLinkedInOverlay(card, index);
+	const overlay = isX
+		? makeXOverlay(card, index, portrait)
+		: makeLinkedInOverlay(card, index, portrait);
 
 	await sharp(Buffer.from(background))
 		.composite([
-			{ input: portrait, left: portraitLeft, top: portraitTop },
+			...portraits.map((input, speakerIndex) => ({
+				input,
+				left: portrait.left + speakerIndex * speakerWidth,
+				top: portrait.top,
+			})),
 			{ input: Buffer.from(overlay), left: 0, top: 0 },
 		])
 		.png({ compressionLevel: 9 })
@@ -474,11 +518,16 @@ const makeCopyDocument = () => {
 	const sections = campaign.cards.map((card) => {
 		const xCopy = makeXCopy(card);
 		const linkedInCopy = makeLinkedInCopy(card);
-		const xAlt = `Square ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${card.name} of ${card.company}. The card shows a black-and-white portrait, a cream-colored talk title that reads "${card.title}" and ${card.accentName} accents on a black background. It summarizes the talk as: "${card.summary}" ${campaign.event.date} in ${campaign.event.location}.`;
-		const linkedInAlt = `Landscape ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${card.name} of ${card.company}. The card shows a black-and-white portrait, a cream-colored talk title that reads "${card.title}" and ${card.accentName} accents on a black background. ${campaign.event.date} in ${campaign.event.location}.`;
-		if (xAlt.length > 1000) throw new Error(`${card.name}'s X alt text exceeds 1,000 characters`);
+		const names = speakerNames(card);
+		const portraitDescription =
+			card.speakers.length === 1 ? "a black-and-white portrait" : "black-and-white portraits";
+		const xAlt = `Square ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${names} of ${card.company}. The card shows ${portraitDescription}, a cream-colored talk title that reads "${card.title}" and ${card.accentName} accents on a black background. It summarizes the talk as: "${card.summary}" ${campaign.event.date} in ${campaign.event.location}.`;
+		const linkedInAlt = `Landscape ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${names} of ${card.company}. The card shows ${portraitDescription}, a cream-colored talk title that reads "${card.title}" and ${card.accentName} accents on a black background. ${campaign.event.date} in ${campaign.event.location}.`;
+		if (xAlt.length > 1000) {
+			throw new Error(`${names}'s X alt text exceeds 1,000 characters`);
+		}
 
-		return `## ${card.name} / ${card.company}
+		return `## ${names} / ${card.company}
 
 ### X (${xMetrics(xCopy).weightedLength}/280 weighted characters)
 
@@ -505,7 +554,7 @@ ${sections.join("\n\n---\n\n")}
 `;
 };
 
-validateCampaign();
+await validateCampaign();
 await validateGeometry();
 
 const markerPath = path.join(outputDirectory, markerName);
