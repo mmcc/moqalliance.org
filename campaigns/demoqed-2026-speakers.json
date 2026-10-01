@@ -1,0 +1,260 @@
+{
+  "schemaVersion": 2,
+  "id": "demoqed-2026-speakers",
+  "outputDirectory": "public/demoqed-2026/social",
+  "event": {
+    "name": "DEMOQED",
+    "date": "October 8, 2026",
+    "dateShort": "OCT 8, 2026",
+    "location": "San Francisco",
+    "venue": "Alamo Drafthouse",
+    "venueShort": "ALAMO DRAFTHOUSE / SF",
+    "subject": "Media over QUIC",
+    "url": "https://moqalliance.org/demoqed-2026",
+    "displayUrl": "MOQALLIANCE.ORG/DEMOQED-2026"
+  },
+  "campaign": {
+    "name": "speaker campaign",
+    "label": "SPEAKER ANNOUNCEMENT",
+    "xHashtags": ["DEMOQED", "MediaOverQUIC"],
+    "linkedinHashtags": ["DEMOQED", "MediaOverQUIC", "StreamingMedia"]
+  },
+  "brand": {
+    "prefix": "DE",
+    "highlight": "MOQ",
+    "suffix": "ED"
+  },
+  "theme": {
+    "ink": "#08070a",
+    "paper": "#efe9dd",
+    "muted": "#8c8791",
+    "copy": "#c5c0c8"
+  },
+  "cards": [
+    {
+      "slug": "luke-curley",
+      "company": "moq.pro",
+      "speakers": [
+        {
+          "name": "Luke Curley",
+          "portrait": "public/demoqed-2026/luke-curley.webp"
+        }
+      ],
+      "accent": "#20e58a",
+      "accentName": "bright green",
+      "title": "How to hand draw your slides (and something something MoQ)",
+      "summary": "Hand-drawn slides, plus something something MoQ. You'll have to be there.",
+      "layouts": {
+        "x": {
+          "titleSize": 62,
+          "lineHeight": 64,
+          "titleLines": ["HOW TO HAND", "DRAW YOUR SLIDES", "(AND SOMETHING", "SOMETHING MOQ)"],
+          "summaryLines": ["HAND-DRAWN SLIDES.", "SOMETHING SOMETHING MOQ.", "YOU'LL HAVE TO BE THERE."]
+        },
+        "linkedin": {
+          "titleSize": 52,
+          "lineHeight": 54,
+          "titleLines": ["HOW TO HAND DRAW", "YOUR SLIDES", "(AND SOMETHING", "SOMETHING MOQ)"]
+        }
+      }
+    },
+    {
+      "slug": "vanessa-pyne",
+      "company": "Daily",
+      "speakers": [
+        {
+          "name": "Vanessa Pyne",
+          "portrait": "public/demoqed-2026/vanessa-pyne.webp"
+        }
+      ],
+      "accent": "#22b7f2",
+      "accentName": "bright blue",
+      "title": "Do you even bench bro? - Livestreaming a LaserDisc to benchmark MoQ vs HLS",
+      "summary": "A LaserDisc livestreamed from New Orleans to San Francisco benchmarks Media over QUIC against HLS.",
+      "layouts": {
+        "x": {
+          "titleSize": 58,
+          "lineHeight": 60,
+          "titleLines": ["DO YOU EVEN", "BENCH BRO?", "LIVESTREAMING A", "LASERDISC TO", "BENCHMARK MOQ", "VS HLS"],
+          "summaryLines": ["A LASERDISC LIVESTREAMED", "FROM NEW ORLEANS TO", "SAN FRANCISCO BENCHMARKS", "MEDIA OVER QUIC AGAINST HLS."]
+        },
+        "linkedin": {
+          "titleSize": 48,
+          "lineHeight": 50,
+          "titleLines": ["DO YOU EVEN BENCH BRO?", "LIVESTREAMING A LASERDISC", "TO BENCHMARK MOQ VS HLS"]
+        }
+      }
+    },
+    {
+      "slug": "will-law",
+      "company": "Akamai Technologies",
+      "speakers": [
+        {
+          "name": "Will Law",
+          "portrait": "public/demoqed-2026/will-law.webp"
+        }
+      ],
+      "accent": "#a477ff",
+      "accentName": "bright purple",
+      "title": "I'm streaming MoQ - huh?",
+      "summary": "Why payload-agnostic MOQT still needs media formats, with MSF, CMSF, and working player demos.",
+      "layouts": {
+        "x": {
+          "titleSize": 82,
+          "lineHeight": 84,
+          "titleLines": ["I'M STREAMING", "MOQ - HUH?"],
+          "summaryLines": ["WHY PAYLOAD-AGNOSTIC MOQT", "STILL NEEDS MEDIA FORMATS,", "WITH MSF, CMSF, AND WORKING", "PLAYER DEMOS."]
+        },
+        "linkedin": {
+          "titleSize": 70,
+          "lineHeight": 72,
+          "titleLines": ["I'M STREAMING", "MOQ - HUH?"]
+        }
+      }
+    },
+    {
+      "slug": "aman-sharma-konstantin-tsoy",
+      "company": "Meta",
+      "speakers": [
+        {
+          "name": "Aman Sharma",
+          "portrait": "public/demoqed-2026/aman-sharma.webp"
+        },
+        {
+          "name": "Konstantin Tsoy",
+          "portrait": "public/demoqed-2026/konstantin-tsoy.webp"
+        }
+      ],
+      "accent": "#ff4b9b",
+      "accentName": "bright pink",
+      "title": "Moving Instagram and Facebook Live to MoQ",
+      "summary": "How Meta is moving Instagram and Facebook Live from its proprietary RUSH protocol to Media over QUIC.",
+      "layouts": {
+        "x": {
+          "titleSize": 58,
+          "lineHeight": 63,
+          "speakerSize": 56,
+          "titleLines": ["MOVING INSTAGRAM", "AND FACEBOOK LIVE", "TO MOQ"],
+          "summaryLines": ["HOW META IS MOVING", "INSTAGRAM AND FACEBOOK LIVE", "FROM ITS PROPRIETARY RUSH", "PROTOCOL TO MEDIA OVER QUIC."]
+        },
+        "linkedin": {
+          "titleSize": 58,
+          "lineHeight": 61,
+          "speakerSize": 40,
+          "titleLines": ["MOVING INSTAGRAM", "AND FACEBOOK LIVE", "TO MOQ"]
+        }
+      }
+    },
+    {
+      "slug": "alan-frindell",
+      "company": "Atomic Quokka",
+      "speakers": [
+        {
+          "name": "Alan Frindell",
+          "portrait": "public/demoqed-2026/alan-frindell.webp",
+          "crop": { "left": 130, "top": 0, "width": 220, "height": 290 }
+        }
+      ],
+      "accent": "#ff7b2e",
+      "accentName": "bright orange",
+      "title": "Scaling the OpenMOQ moqx relay",
+      "summary": "How the OpenMOQ moqx relay scales fan-out efficiently across multiple CPU cores.",
+      "layouts": {
+        "x": {
+          "titleSize": 76,
+          "lineHeight": 78,
+          "titleLines": ["SCALING THE", "OPENMOQ MOQX", "RELAY"],
+          "summaryLines": ["HOW THE OPENMOQ MOQX RELAY", "SCALES FAN-OUT EFFICIENTLY", "ACROSS MULTIPLE CPU CORES."]
+        },
+        "linkedin": {
+          "titleSize": 64,
+          "lineHeight": 66,
+          "titleLines": ["SCALING THE", "OPENMOQ MOQX", "RELAY"]
+        }
+      }
+    },
+    {
+      "slug": "david-von-wrangel",
+      "company": "Millicast",
+      "speakers": [
+        {
+          "name": "David von Wrangel",
+          "portrait": "public/demoqed-2026/david-von-wrangel.webp"
+        }
+      ],
+      "accent": "#f5dc45",
+      "accentName": "bright yellow",
+      "title": "Adding interactivity to live broadcasts with MoQ",
+      "summary": "See how MoQ can replace traditional HLS streaming to reduce latency and enable new audience interactions, including a live demo.",
+      "layouts": {
+        "x": {
+          "titleSize": 62,
+          "lineHeight": 64,
+          "titleLines": ["ADDING", "INTERACTIVITY TO", "LIVE BROADCASTS", "WITH MOQ"],
+          "summaryLines": ["SEE HOW MOQ CAN REPLACE", "TRADITIONAL HLS STREAMING", "TO REDUCE LATENCY AND ENABLE", "NEW AUDIENCE INTERACTIONS."]
+        },
+        "linkedin": {
+          "titleSize": 52,
+          "lineHeight": 54,
+          "titleLines": ["ADDING INTERACTIVITY TO", "LIVE BROADCASTS", "WITH MOQ"]
+        }
+      }
+    },
+    {
+      "slug": "mike-english",
+      "company": "Cloudflare",
+      "speakers": [
+        {
+          "name": "Mike English",
+          "portrait": "public/demoqed-2026/mike-english.webp",
+          "position": "north"
+        }
+      ],
+      "accent": "#a8e63d",
+      "accentName": "bright lime green",
+      "title": "Using MoQ to Accelerate Agentic AI",
+      "summary": "Real-time multimodal AI agents stream vision and audio over MoQ, with open-source code and a live demo.",
+      "layouts": {
+        "x": {
+          "titleSize": 68,
+          "lineHeight": 70,
+          "titleLines": ["USING MOQ TO", "ACCELERATE", "AGENTIC AI"],
+          "summaryLines": ["REAL-TIME MULTIMODAL AI", "AGENTS STREAM VISION AND AUDIO", "OVER MOQ, WITH OPEN-SOURCE", "CODE AND A LIVE DEMO."]
+        },
+        "linkedin": {
+          "titleSize": 58,
+          "lineHeight": 60,
+          "titleLines": ["USING MOQ TO", "ACCELERATE AGENTIC AI"]
+        }
+      }
+    },
+    {
+      "slug": "sam-bhattacharyya",
+      "company": "WebCodecs",
+      "speakers": [
+        {
+          "name": "Sam Bhattacharyya",
+          "portrait": "public/demoqed-2026/sam-bhattacharyya.webp",
+          "position": "north"
+        }
+      ],
+      "accent": "#46df74",
+      "accentName": "bright green",
+      "title": "Live Streaming over MoQ through WebCodecs",
+      "summary": "A browser-only live streaming demo using WebCodecs and MoQ, with no native dependencies or WebAssembly.",
+      "layouts": {
+        "x": {
+          "titleSize": 60,
+          "lineHeight": 62,
+          "titleLines": ["LIVE STREAMING", "OVER MOQ THROUGH", "WEBCODECS"],
+          "summaryLines": ["BROWSER-ONLY STREAMING DEMO", "USING WEBCODECS AND MOQ,", "WITH NO NATIVE DEPENDENCIES", "OR WEBASSEMBLY."]
+        },
+        "linkedin": {
+          "titleSize": 52,
+          "lineHeight": 54,
+          "titleLines": ["LIVE STREAMING OVER MOQ", "THROUGH WEBCODECS"]
+        }
+      }
+    }
+  ]
+}
