@@ -42,14 +42,14 @@
       ],
       "accent": "#20e58a",
       "accentName": "bright green",
-      "title": "How to hand draw your slides (and something something MoQ)",
-      "summary": "Hand-drawn slides, plus something something MoQ. You'll have to be there.",
+      "title": "How to hand draw your slides (and something something moq)",
+      "summary": "",
       "layouts": {
         "x": {
           "titleSize": 62,
           "lineHeight": 64,
           "titleLines": ["HOW TO HAND", "DRAW YOUR SLIDES", "(AND SOMETHING", "SOMETHING MOQ)"],
-          "summaryLines": ["HAND-DRAWN SLIDES.", "SOMETHING SOMETHING MOQ.", "YOU'LL HAVE TO BE THERE."]
+          "summaryLines": []
         },
         "linkedin": {
           "titleSize": 52,
@@ -96,7 +96,7 @@
       ],
       "accent": "#a477ff",
       "accentName": "bright purple",
-      "title": "I'm streaming MoQ - huh?",
+      "title": "I'm streaming MOQ - huh?",
       "summary": "Why payload-agnostic MOQT still needs media formats, with MSF, CMSF, and working player demos.",
       "layouts": {
         "x": {
@@ -128,6 +128,7 @@
       "accent": "#ff4b9b",
       "accentName": "bright pink",
       "title": "Moving Instagram and Facebook Live to MoQ",
+      "officialTitle": false,
       "summary": "How Meta is moving Instagram and Facebook Live from its proprietary RUSH protocol to Media over QUIC.",
       "layouts": {
         "x": {
@@ -158,6 +159,7 @@
       "accent": "#ff7b2e",
       "accentName": "bright orange",
       "title": "Scaling the OpenMOQ moqx relay",
+      "officialTitle": false,
       "summary": "How the OpenMOQ moqx relay scales fan-out efficiently across multiple CPU cores.",
       "layouts": {
         "x": {
@@ -175,7 +177,7 @@
     },
     {
       "slug": "david-von-wrangel",
-      "company": "Millicast",
+      "company": "Evolve Robotics",
       "speakers": [
         {
           "name": "David von Wrangel",
@@ -184,19 +186,19 @@
       ],
       "accent": "#f5dc45",
       "accentName": "bright yellow",
-      "title": "Adding interactivity to live broadcasts with MoQ",
-      "summary": "See how MoQ can replace traditional HLS streaming to reduce latency and enable new audience interactions, including a live demo.",
+      "title": "MoQ beyond media",
+      "summary": "How Evolve Robotics replaced WebRTC and backend pub/sub with MoQ for robot teleoperation, events, and progressively refined point clouds.",
       "layouts": {
         "x": {
-          "titleSize": 62,
-          "lineHeight": 64,
-          "titleLines": ["ADDING", "INTERACTIVITY TO", "LIVE BROADCASTS", "WITH MOQ"],
-          "summaryLines": ["SEE HOW MOQ CAN REPLACE", "TRADITIONAL HLS STREAMING", "TO REDUCE LATENCY AND ENABLE", "NEW AUDIENCE INTERACTIONS."]
+          "titleSize": 82,
+          "lineHeight": 84,
+          "titleLines": ["MOQ BEYOND", "MEDIA"],
+          "summaryLines": ["WEBRTC AND BACKEND PUB/SUB", "REPLACED WITH MOQ FOR ROBOT", "TELEOPERATION, EVENTS, AND", "REFINED POINT CLOUDS."]
         },
         "linkedin": {
-          "titleSize": 52,
-          "lineHeight": 54,
-          "titleLines": ["ADDING INTERACTIVITY TO", "LIVE BROADCASTS", "WITH MOQ"]
+          "titleSize": 72,
+          "lineHeight": 74,
+          "titleLines": ["MOQ BEYOND MEDIA"]
         }
       }
     },
@@ -212,25 +214,25 @@
       ],
       "accent": "#a8e63d",
       "accentName": "bright lime green",
-      "title": "Using MoQ to Accelerate Agentic AI",
-      "summary": "Real-time multimodal AI agents stream vision and audio over MoQ, with open-source code and a live demo.",
+      "title": "HAM radio and MoQ",
+      "summary": "",
       "layouts": {
         "x": {
-          "titleSize": 68,
-          "lineHeight": 70,
-          "titleLines": ["USING MOQ TO", "ACCELERATE", "AGENTIC AI"],
-          "summaryLines": ["REAL-TIME MULTIMODAL AI", "AGENTS STREAM VISION AND AUDIO", "OVER MOQ, WITH OPEN-SOURCE", "CODE AND A LIVE DEMO."]
+          "titleSize": 82,
+          "lineHeight": 84,
+          "titleLines": ["HAM RADIO", "AND MOQ"],
+          "summaryLines": []
         },
         "linkedin": {
-          "titleSize": 58,
-          "lineHeight": 60,
-          "titleLines": ["USING MOQ TO", "ACCELERATE AGENTIC AI"]
+          "titleSize": 68,
+          "lineHeight": 70,
+          "titleLines": ["HAM RADIO AND MOQ"]
         }
       }
     },
     {
       "slug": "sam-bhattacharyya",
-      "company": "WebCodecs",
+      "company": "Katana Video",
       "speakers": [
         {
           "name": "Sam Bhattacharyya",
@@ -240,19 +242,19 @@
       ],
       "accent": "#46df74",
       "accentName": "bright green",
-      "title": "Live Streaming over MoQ through WebCodecs",
-      "summary": "A browser-only live streaming demo using WebCodecs and MoQ, with no native dependencies or WebAssembly.",
+      "title": "State of WebCodecs in 2026",
+      "summary": "An open-source dataset on browser codec support, with takeaways for MoQ applications and AV1's viability as a distribution target.",
       "layouts": {
         "x": {
-          "titleSize": 60,
-          "lineHeight": 62,
-          "titleLines": ["LIVE STREAMING", "OVER MOQ THROUGH", "WEBCODECS"],
-          "summaryLines": ["BROWSER-ONLY STREAMING DEMO", "USING WEBCODECS AND MOQ,", "WITH NO NATIVE DEPENDENCIES", "OR WEBASSEMBLY."]
+          "titleSize": 76,
+          "lineHeight": 78,
+          "titleLines": ["STATE OF", "WEBCODECS", "IN 2026"],
+          "summaryLines": ["AN OPEN-SOURCE DATASET ON", "BROWSER CODEC SUPPORT, WITH", "TAKEAWAYS FOR MOQ APPS AND", "AV1 AS A DISTRIBUTION TARGET."]
         },
         "linkedin": {
-          "titleSize": 52,
-          "lineHeight": 54,
-          "titleLines": ["LIVE STREAMING OVER MOQ", "THROUGH WEBCODECS"]
+          "titleSize": 64,
+          "lineHeight": 66,
+          "titleLines": ["STATE OF WEBCODECS", "IN 2026"]
         }
       }
     }
