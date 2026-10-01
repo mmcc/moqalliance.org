@@ -83,10 +83,12 @@ const speakerNames = (card, conjunction = " and ") =>
 
 const speakerVerb = (card) => (card.speakers.length === 1 ? "is" : "are");
 
+const titleForCopy = (card) => (card.officialTitle === false ? card.title : `"${card.title}"`);
+
 const makeXCopy = (card) =>
 	`${speakerNames(card)} of ${card.company} ${speakerVerb(card)} speaking at ${campaign.event.name}.
 
-"${card.title}"
+${titleForCopy(card)}
 
 ${campaign.event.date} in ${campaign.event.location}.
 ${campaign.event.url}
@@ -96,9 +98,7 @@ ${hashtags(campaign.campaign.xHashtags)}`;
 const makeLinkedInCopy = (card) =>
 	`${speakerNames(card)} of ${card.company} ${speakerVerb(card)} speaking at ${campaign.event.name} on ${campaign.event.date} in ${campaign.event.location}.
 
-"${card.title}"
-
-${card.summary}
+${titleForCopy(card)}${card.summary ? `\n\n${card.summary}` : ""}
 
 Register: ${campaign.event.url}
 
@@ -133,6 +133,9 @@ const validateCampaign = async () => {
 			if (!realPortrait.startsWith(`${realPublicDirectory}${path.sep}`)) {
 				throw new Error(`${speaker.name}'s portrait must be inside public/`);
 			}
+		}
+		if (!card.summary && card.layouts.x.summaryLines.length) {
+			throw new Error(`${speakerNames(card)} has summary lines without a summary`);
 		}
 
 		const xCopy = makeXCopy(card);
@@ -186,13 +189,16 @@ const portraitGeometry = (card, platform) => {
 		: { left: 850, top: 132, width: 300, height: 350 };
 };
 
-const makeXOverlay = (card, index, portrait) => {
+const makeXOverlay = (card, portrait) => {
 	const layout = card.layouts.x;
-	const titleY = layout.titleSize >= 80 ? 325 : 285;
+	const titleY = layout.titleSize >= 76 ? 265 : 235;
 	const titleBottom = titleY + (layout.titleLines.length - 1) * layout.lineHeight;
-	const summaryY = Math.max(630, titleBottom + 88);
+	const summaryY = titleBottom + 90;
 	const displayedNames = speakerNames(card, " + ").toUpperCase();
 	const speakerSize = layout.speakerSize ?? 88;
+	const summary = layout.summaryLines.length
+		? textLines({ lines: layout.summaryLines, x: 70, y: summaryY, size: 34, lineHeight: 52, family: "DM Mono, monospace", fill: campaign.theme.copy, weight: 500 })
+		: "";
 
 	return `
 <svg width="1200" height="1200" viewBox="0 0 1200 1200" xmlns="http://www.w3.org/2000/svg">
@@ -200,15 +206,13 @@ const makeXOverlay = (card, index, portrait) => {
 	<path d="M1142 ${portrait.top + 16}V${portrait.top + portrait.height - 16}" stroke="${campaign.theme.paper}" stroke-opacity="0.55" stroke-width="2"/>
 
 	${brand({ x: 70, y: 96, size: 72, accent: card.accent })}
-	<text x="72" y="143" fill="${card.accent}" font-family="DM Mono, monospace" font-size="22" font-weight="500" letter-spacing="3">${escapeXml(campaign.campaign.label)} / ${String(index + 1).padStart(2, "0")}</text>
+	<text x="72" y="143" fill="${card.accent}" font-family="DM Mono, monospace" font-size="22" font-weight="500" letter-spacing="3">${escapeXml(campaign.campaign.label)}</text>
 	<text x="1138" y="92" fill="${campaign.theme.paper}" font-family="DM Mono, monospace" font-size="24" text-anchor="end">${escapeXml(campaign.event.dateShort)} / ${escapeXml(campaign.event.location.toUpperCase())}</text>
 	<text x="1138" y="132" fill="${campaign.theme.muted}" font-family="DM Mono, monospace" font-size="21" text-anchor="end">${escapeXml(campaign.event.subject.toUpperCase())}</text>
 
-	<text x="70" y="226" fill="${card.accent}" font-family="DM Mono, monospace" font-size="20" font-weight="500" letter-spacing="4">THE TALK</text>
 	${textLines({ lines: layout.titleLines, x: 70, y: titleY, size: layout.titleSize, lineHeight: layout.lineHeight, family: "Anton, sans-serif", fill: campaign.theme.paper, weight: 700 })}
 
-	<line x1="70" y1="${summaryY - 39}" x2="680" y2="${summaryY - 39}" stroke="${card.accent}" stroke-width="4"/>
-	${textLines({ lines: layout.summaryLines, x: 70, y: summaryY, size: 34, lineHeight: 52, family: "DM Mono, monospace", fill: campaign.theme.copy, weight: 500 })}
+	${summary}
 
 	<rect x="${portrait.left + 40}" y="${portrait.top + portrait.height - 56}" width="${portrait.width - 80}" height="36" fill="${card.accent}"/>
 	<text x="${portrait.left + portrait.width / 2}" y="${portrait.top + portrait.height - 30}" fill="${campaign.theme.ink}" font-family="DM Mono, monospace" font-size="20" font-weight="500" text-anchor="middle">${escapeXml(campaign.campaign.label)}</text>
@@ -221,9 +225,9 @@ const makeXOverlay = (card, index, portrait) => {
 </svg>`;
 };
 
-const makeLinkedInOverlay = (card, index, portrait) => {
+const makeLinkedInOverlay = (card, portrait) => {
 	const layout = card.layouts.linkedin;
-	const titleY = 213;
+	const titleY = 190;
 	const displayedNames = speakerNames(card, " + ").toUpperCase();
 	const speakerSize = layout.speakerSize ?? 64;
 
@@ -232,11 +236,10 @@ const makeLinkedInOverlay = (card, index, portrait) => {
 	<rect x="${portrait.left}" y="${portrait.top}" width="${portrait.width}" height="${portrait.height}" fill="none" stroke="${card.accent}" stroke-width="6"/>
 
 	${brand({ x: 50, y: 73, size: 54, accent: card.accent })}
-	<text x="52" y="111" fill="${card.accent}" font-family="DM Mono, monospace" font-size="18" font-weight="500" letter-spacing="2">${escapeXml(campaign.campaign.label)} / ${String(index + 1).padStart(2, "0")}</text>
+	<text x="52" y="111" fill="${card.accent}" font-family="DM Mono, monospace" font-size="18" font-weight="500" letter-spacing="2">${escapeXml(campaign.campaign.label)}</text>
 	<text x="1150" y="62" fill="${campaign.theme.paper}" font-family="DM Mono, monospace" font-size="22" text-anchor="end">${escapeXml(campaign.event.dateShort)} / ${escapeXml(campaign.event.location.toUpperCase())}</text>
 	<text x="1150" y="96" fill="${campaign.theme.muted}" font-family="DM Mono, monospace" font-size="18" text-anchor="end">${escapeXml(campaign.event.subject.toUpperCase())}</text>
 
-	<text x="50" y="158" fill="${card.accent}" font-family="DM Mono, monospace" font-size="17" font-weight="500" letter-spacing="4">THE TALK</text>
 	${textLines({ lines: layout.titleLines, x: 50, y: titleY, size: layout.titleSize, lineHeight: layout.lineHeight, family: "Anton, sans-serif", fill: campaign.theme.paper, weight: 700 })}
 
 	<rect x="${portrait.left + 25}" y="${portrait.top + portrait.height - 46}" width="${portrait.width - 50}" height="30" fill="${card.accent}"/>
@@ -275,7 +278,7 @@ const validateGeometry = async () => {
 	});
 	const brandText = `${campaign.brand.prefix}${campaign.brand.highlight}${campaign.brand.suffix}`;
 
-	for (const [index, card] of campaign.cards.entries()) {
+	for (const card of campaign.cards) {
 		const displayedNames = speakerNames(card, " + ").toUpperCase();
 		const checks = [
 			{
@@ -289,7 +292,7 @@ const validateGeometry = async () => {
 			},
 			{
 				label: "X campaign label",
-				text: `${campaign.campaign.label} / ${String(index + 1).padStart(2, "0")}`,
+				text: campaign.campaign.label,
 				size: 22,
 				family: "DM Mono",
 				weight: 500,
@@ -376,7 +379,7 @@ const validateGeometry = async () => {
 			},
 			{
 				label: "LinkedIn campaign label",
-				text: `${campaign.campaign.label} / ${String(index + 1).padStart(2, "0")}`,
+				text: campaign.campaign.label,
 				size: 18,
 				family: "DM Mono",
 				weight: 500,
@@ -433,25 +436,25 @@ const validateGeometry = async () => {
 		}
 
 		const xLayout = card.layouts.x;
-		const xTitleY = xLayout.titleSize >= 80 ? 325 : 285;
+		const xTitleY = xLayout.titleSize >= 76 ? 265 : 235;
 		const xTitleBottom = xTitleY + (xLayout.titleLines.length - 1) * xLayout.lineHeight;
-		const xSummaryY = Math.max(630, xTitleBottom + 88);
+		const xSummaryY = xTitleBottom + 90;
 		const xSummaryBottom = xSummaryY + (xLayout.summaryLines.length - 1) * 52;
-		if (xSummaryBottom > 880) {
+		if (xLayout.summaryLines.length && xSummaryBottom > 880) {
 			throw new Error(`${speakerNames(card)}'s X copy exceeds its vertical region`);
 		}
-		if (xTitleY - xLayout.titleSize * 0.7 < 230) {
-			throw new Error(`${speakerNames(card)}'s X title overlaps its section label`);
+		if (xTitleY - xLayout.titleSize * 0.7 < 175) {
+			throw new Error(`${speakerNames(card)}'s X title overlaps the header`);
 		}
 
 		const linkedInLayout = card.layouts.linkedin;
 		const linkedInTitleBottom =
-			213 + (linkedInLayout.titleLines.length - 1) * linkedInLayout.lineHeight;
+			190 + (linkedInLayout.titleLines.length - 1) * linkedInLayout.lineHeight;
 		if (linkedInTitleBottom > 420) {
 			throw new Error(`${speakerNames(card)}'s LinkedIn title exceeds its vertical region`);
 		}
-		if (213 - linkedInLayout.titleSize * 0.7 < 160) {
-			throw new Error(`${speakerNames(card)}'s LinkedIn title overlaps its section label`);
+		if (190 - linkedInLayout.titleSize * 0.7 < 130) {
+			throw new Error(`${speakerNames(card)}'s LinkedIn title overlaps the header`);
 		}
 
 		const company = await measureText({
@@ -481,7 +484,7 @@ const validateGeometry = async () => {
 	}
 };
 
-const renderCard = async ({ card, index, platform }) => {
+const renderCard = async ({ card, platform }) => {
 	const isX = platform === "x";
 	const width = 1200;
 	const height = isX ? 1200 : 627;
@@ -498,8 +501,8 @@ const renderCard = async ({ card, index, platform }) => {
 		watermarkY: isX ? 965 : 610,
 	});
 	const overlay = isX
-		? makeXOverlay(card, index, portrait)
-		: makeLinkedInOverlay(card, index, portrait);
+		? makeXOverlay(card, portrait)
+		: makeLinkedInOverlay(card, portrait);
 
 	await sharp(Buffer.from(background))
 		.composite([
@@ -521,8 +524,12 @@ const makeCopyDocument = () => {
 		const names = speakerNames(card);
 		const portraitDescription =
 			card.speakers.length === 1 ? "a black-and-white portrait" : "black-and-white portraits";
-		const xAlt = `Square ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${names} of ${card.company}. The card shows ${portraitDescription}, a cream-colored talk title that reads "${card.title}" and ${card.accentName} accents on a black background. It summarizes the talk as: "${card.summary}" ${campaign.event.date} in ${campaign.event.location}.`;
-		const linkedInAlt = `Landscape ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${names} of ${card.company}. The card shows ${portraitDescription}, a cream-colored talk title that reads "${card.title}" and ${card.accentName} accents on a black background. ${campaign.event.date} in ${campaign.event.location}.`;
+		const titleKind = card.officialTitle === false ? "editorial headline" : "talk title";
+		const summaryDescription = card.summary
+			? ` It summarizes the talk as: "${card.summary}"`
+			: "";
+		const xAlt = `Square ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${names} of ${card.company}. The card shows ${portraitDescription}, a cream-colored ${titleKind} that reads "${card.title}" and ${card.accentName} accents on a black background.${summaryDescription} ${campaign.event.date} in ${campaign.event.location}.`;
+		const linkedInAlt = `Landscape ${campaign.event.name} ${campaign.campaign.label.toLowerCase()} card for ${names} of ${card.company}. The card shows ${portraitDescription}, a cream-colored ${titleKind} that reads "${card.title}" and ${card.accentName} accents on a black background. ${campaign.event.date} in ${campaign.event.location}.`;
 		if (xAlt.length > 1000) {
 			throw new Error(`${names}'s X alt text exceeds 1,000 characters`);
 		}
@@ -590,9 +597,9 @@ await Promise.all([
 
 try {
 	await Promise.all(
-		campaign.cards.flatMap((card, index) => [
-			renderCard({ card, index, platform: "x" }),
-			renderCard({ card, index, platform: "linkedin" }),
+		campaign.cards.flatMap((card) => [
+			renderCard({ card, platform: "x" }),
+			renderCard({ card, platform: "linkedin" }),
 		]),
 	);
 
