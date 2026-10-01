@@ -460,6 +460,18 @@ const socialImage = "https://moqalliance.org/demoqed-2026/social.png";
 				text-transform: uppercase;
 			}
 
+			.speaker-more a {
+				color: inherit;
+				text-decoration: none;
+			}
+
+			.speaker-more a:hover,
+			.speaker-more a:focus-visible {
+				text-decoration: underline;
+				text-decoration-thickness: 0.08em;
+				text-underline-offset: 0.1em;
+			}
+
 			.event-facts {
 				display: grid;
 				grid-template-columns: minmax(14rem, 0.7fr) minmax(24rem, 1.3fr);
@@ -932,7 +944,13 @@ const socialImage = "https://moqalliance.org/demoqed-2026/social.png";
 										</li>
 									))}
 									<li class="speaker-more">
-										<strong>You can give a lightning talk at DEMOQED</strong>
+										<a
+											href="https://docs.google.com/forms/d/e/1FAIpQLScigURuDhxTOM4UMGfOwYw6B5q78x5XM8awYeNV49NhlnBBmA/viewform"
+											target="_blank"
+											rel="noopener noreferrer"
+										>
+											<strong>You can give a lightning talk at DEMOQED</strong>
+										</a>
 									</li>
 								</ul>
 							</section>
